@@ -27,11 +27,18 @@
         </module>
         <!-- G-10.8: braces always -->
         <module name="NeedBraces"/>
-        <!-- G-10.2: final on locals, enhanced-for variables and parameters never reassigned
-             (catch parameters and try-with-resources variables are left to review) -->
+        <!-- G-10.2: final on locals, enhanced-for variables, catch parameters and method and constructor parameters
+             never reassigned; a parameter that is reassigned, and the parameters of a method without a body, are not
+             reported (FinalParameters, used until 2.0.1, reported every parameter without final). try-with-resources
+             variables are left to review. -->
         <module name="FinalLocalVariable">
             <property name="validateEnhancedForLoopVariable" value="true"/>
+            <property name="tokens" value="VARIABLE_DEF,PARAMETER_DEF"/>
         </module>
-        <module name="FinalParameters"/>
+        <!-- G-10.2: a local declared without an initialiser and assigned later stays bare -->
+        <module name="SuppressionXpathSingleFilter">
+            <property name="checks" value="FinalLocalVariable"/>
+            <property name="query" value="//SLIST/VARIABLE_DEF[not(ASSIGN)]/IDENT"/>
+        </module>
     </module>
 </module>

@@ -1,6 +1,6 @@
 # Java Coding Standard
 
-Version 2.0.0, 2026-10-30. JDK 25 baseline.
+Version 2.0.1, 2026-10-30. JDK 25 baseline.
 
 This standard says how Java is written, changed and judged in the repositories that follow it. Its first readers are
 coding agents (Claude, Codex) that write, change and review code; its second readers are the engineers who own that
@@ -1565,10 +1565,10 @@ parameters of a method without a body (`abstract`, `native`, interface
 declarations). A sweep over existing code is applied by a tool (G-13.9);
 new and changed lines are written with `final` directly. javac rejects a `final`
 on a reassigned variable but never reports a missing one: Checkstyle's
-`FinalLocalVariable` and `FinalParameters` (in this standard's
-`config/checkstyle/checkstyle.xml`) report locals, enhanced-`for` variables and
-parameters; catch parameters and `try`-with-resources variables are left to
-review.
+`FinalLocalVariable` (in this standard's `config/checkstyle/checkstyle.xml`)
+reports locals, enhanced-`for` variables, catch parameters and method and
+constructor parameters that are never reassigned, and leaves out a local declared
+without an initialiser; `try`-with-resources variables are left to review.
 
 ```java
 public long sum(final LongList values, final int from) {
