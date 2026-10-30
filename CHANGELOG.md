@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.1 (2026-10-30)
+
+- `config/checkstyle/checkstyle.xml` checks G-10.2 as written. `FinalParameters` reported every parameter without
+  `final`, including one reassigned in the body, which the rule leaves bare; `FinalLocalVariable` now checks
+  parameters (`PARAMETER_DEF`), reporting only those never reassigned and none of a method without a body.
+  `FinalLocalVariable` also reported a local declared without an initialiser and assigned later, which the rule
+  leaves bare; a `SuppressionXpathSingleFilter` leaves those out. Catch parameters are now checked by the build, not
+  left to review. No rule text changed except G-10.2's sentence on which checker reports what.
+
 ## 2.0.0 (2026-10-30)
 
 - Written for coding agents first: every rule is one block with its scope, the principles it follows from, how it is

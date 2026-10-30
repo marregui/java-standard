@@ -1,6 +1,6 @@
 # Rules index
 
-Generated from [`STANDARD.md`](STANDARD.md) v2.0.0 by `tools/rules.py`; do not edit by hand. One row per
+Generated from [`STANDARD.md`](STANDARD.md) v2.0.1 by `tools/rules.py`; do not edit by hand. One row per
 rule. Read the rule's block in the standard before applying it or reporting a finding against it.
 
 | ID | Rule | Scope | Class | Checked by | Finding |
