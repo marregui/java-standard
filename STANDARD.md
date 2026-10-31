@@ -1864,10 +1864,13 @@ assertEquals(0, anomalies.get());
 
 **Scope:** everywhere · **From:** P1, P5 · **Checked by:** review · **Class:** rule
 
-**Finding:** A `Closeable` in a test outside `try`-with-resources, mutable shared state not reset per test, or a copied test where a parameter would do.
+**Finding:** A `Closeable` in a test that is neither in `try`-with-resources nor a per-class fixture closed in `@AfterAll` (or by an extension), mutable shared state not reset per test, or a copied test where a parameter would do.
 
-`try (final X x = ...)` for every `Closeable` in
-tests. Parameterise over modes rather than copy tests. Assert meaning, not
+A heavy fixture (an embedded database, a server) lives for the class: opened in
+`@BeforeAll` and closed in `@AfterAll`, which closes what was opened even when
+the start failed half-way (a fixture still `null` is skipped, so the start's
+failure is the one reported). Every other `Closeable` in a test is held in
+`try (final X x = ...)`. Parameterise over modes rather than copy tests. Assert meaning, not
 representation. Narrow unit tests need no base class.
 
 
