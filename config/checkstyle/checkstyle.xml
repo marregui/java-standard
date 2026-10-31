@@ -16,21 +16,25 @@
         </module>
         <!-- G-10.11: no wildcards -->
         <module name="AvoidStarImport"/>
-        <!-- G-10.11: JDK, then third-party, then the project's own, then static imports, each sorted -->
+        <!-- G-10.11: JDK, then third-party, then the project's own, then static imports, each sorted. The JDK group is
+             the packages the java.* and jdk.* modules of JDK 25 export (java_home/bin/java describe-module), not every
+             com.sun package: com.sun.jna and com.sun.activation are third-party. -->
         <module name="CustomImportOrder">
             <property name="customImportOrderRules"
                       value="STANDARD_JAVA_PACKAGE###THIRD_PARTY_PACKAGE###SPECIAL_IMPORTS###STATIC"/>
-            <property name="standardPackageRegExp" value="^(java|javax|jdk|com\.sun)\."/>
+            <property name="standardPackageRegExp"
+                      value="^(java|javax|jdk|sun\.(misc|reflect)|netscape\.javascript|org\.(w3c\.dom|xml\.sax|ietf\.jgss)|com\.sun\.(java\.accessibility|jdi|management|net\.httpserver|nio\.(file|sctp)|security\.(auth|jgss)|source|tools\.(attach|javac|jconsole)))\."/>
             <property name="specialImportsRegExp" value="${projectPackagePattern}" default="^$"/>
             <property name="sortImportsInGroupAlphabetically" value="true"/>
             <property name="separateLineBetweenGroups" value="true"/>
         </module>
         <!-- G-10.8: braces always -->
         <module name="NeedBraces"/>
-        <!-- G-10.2: final on locals, enhanced-for variables, catch parameters and method and constructor parameters
-             never reassigned; a parameter that is reassigned, and the parameters of a method without a body, are not
-             reported (FinalParameters, used until 2.0.1, reported every parameter without final). try-with-resources
-             variables are left to review. -->
+        <!-- G-10.2: final on locals, enhanced-for variables, single-type catch parameters and method and constructor
+             parameters never reassigned; a parameter that is reassigned, and the parameters of a method without a body,
+             are not reported (FinalParameters, used until 2.0.1, reported every parameter without final). Left to
+             review, because FinalLocalVariable does not report them (Checkstyle 14.3.0): fields, try-with-resources
+             variables, multi-catch parameters and basic-for initialisers. -->
         <module name="FinalLocalVariable">
             <property name="validateEnhancedForLoopVariable" value="true"/>
             <property name="tokens" value="VARIABLE_DEF,PARAMETER_DEF"/>
