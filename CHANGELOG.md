@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.0.2 (2026-10-31)
+
+Corrections found by applying the standard to a whole repository; no rule ID, scope, class or Finding line changed.
+
+- G-1.5: the example's `int` mixer was a single multiply folded by `h ^ (h >>> 16)`, which still clusters keys strided
+  by a large power of two (1,024 keys spaced 2^24 fell into 8 of 2,048 slots) and was mislabelled Fibonacci hashing;
+  it is now the murmur3 finaliser, and the text says why a single multiply is not enough.
+- G-2.1: the `Window` example now implements `toString()` as `CharSequence` requires; the Finding's list of contract
+  breaks names it.
+- G-2.5: overriding `getStackTrace()` does change what loggers that render through it print (Logback).
+- G-7.3: HotSpot may place a subclass field of 4 bytes or less in a gap of its superclass's layout (offset 12 on
+  JDK 25), so "superclass fields first" is qualified and the padded hot field is a `long`.
+- G-7.7: `notify` publishes through the monitor both sides hold; only a flag read outside it is unsafe.
+- G-10.2: the text and the Checkstyle comment name what `FinalLocalVariable` does not report (fields,
+  `try`-with-resources variables, multi-catch parameters, basic-`for` initialisers): checked by review.
+- G-10.11: the JDK group is the packages the JDK's modules export (`org.w3c.dom`, `org.xml.sax`, `org.ietf.jgss`,
+  `sun.misc`, `sun.reflect`, `netscape.javascript` and the exported `com.sun` packages), not every `com.sun` package; `checkstyle.xml`'s `standardPackageRegExp` follows.
+  A file that imports `org.w3c.dom` or `org.xml.sax` among third-party imports is now reported.
+- G-11.5: the example interrupts every worker, then joins each with a bound, in `finally`, and asserts finished and
+  stopped in one assertion after it, so a stuck worker no longer replaces the primary failure or leaves the other
+  workers running.
+- G-14.11: the JDK's `default` and `profile` settings record environment variables, system properties and the
+  command line (`jdk.JVMInformation`); the recording is written owner-only and handled as a secret.
+
 ## 2.0.1 (2026-10-30)
 
 - `config/checkstyle/checkstyle.xml` checks G-10.2 as written. `FinalParameters` reported every parameter without

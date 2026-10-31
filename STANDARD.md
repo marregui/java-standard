@@ -274,8 +274,12 @@ private int probe(final int key, int index) {
     }
 }
 
-private static int mix(final int key) {
-    final int h = key * 0x9E3779B9;                     // Fibonacci hashing
+private static int mix(final int key) {               // murmur3 fmix32: every input bit reaches the low bits
+    int h = key;
+    h ^= h >>> 16;
+    h *= 0x85EBCA6B;
+    h ^= h >>> 13;
+    h *= 0xC2B2AE35;
     return h ^ (h >>> 16);
 }
 
@@ -292,8 +296,9 @@ Capacity is rounded up to a power of two from `capacity / loadFactor`; load
 factor 0.5 by default. A `free` counter is decremented on insert so the rehash
 check is one comparison. Delete re-homes keys that were probed past the freed
 slot instead of leaving tombstones. Keys are mixed before masking: object
-hash codes with `h ^ (h >>> 16)`, `int` keys with a multiply and a shift as
-above, `long` keys with a 64-bit multiply-xorshift, because masking keeps only
+hash codes with `h ^ (h >>> 16)`, `int` keys with the murmur3 finaliser as
+above (a single multiply leaves the low bits of keys strided by a power of two
+equal, and a mask keeps only the low bits), `long` keys with a 64-bit multiply-xorshift, because masking keeps only
 low bits and linear probing turns keys that share them (strided ids,
 addresses) into one long cluster. Only a key range the map's javadoc states is
 dense and sequential is masked directly. `contains(k)` is `keyIndex(k) < 0`; provide
@@ -435,7 +440,7 @@ none. Take the index, use it, and take it again after any mutation.
 
 **Scope:** hot path · **From:** P3 · **Checked by:** review · **Class:** rule
 
-**Finding:** A `String` created on a hot path to pass text between components that could take a `CharSequence` window, a stored `CharSequence` that is not copied and not named `...WithBorrowed`, or a `CharSequence` implementation that breaks the interface's contract (an unchecked index, a `subSequence` that throws).
+**Finding:** A `String` created on a hot path to pass text between components that could take a `CharSequence` window, a stored `CharSequence` that is not copied and not named `...WithBorrowed`, or a `CharSequence` implementation that breaks the interface's contract (an unchecked index, a `subSequence` that throws, a `toString()` that does not return exactly its characters).
 
 A tokenizer hands out a reusable window over its input; the
 consumer takes a snapshot window when it must keep a token, and copies only
@@ -464,6 +469,9 @@ public final class Window implements CharSequence {
     @Override public CharSequence subSequence(final int s, final int e) {
         Objects.checkFromToIndex(s, e, hi - lo);
         return new Window().of(base, lo + s, lo + e);   // a new window: the caller may keep it
+    }
+    @Override public String toString() {                // the interface's contract: exactly these chars
+        return base.subSequence(lo, hi).toString();
     }
 }
 ```
@@ -550,8 +558,9 @@ call that may acquire it too.
 Assertions are on in tests and off in production. An assignment inside an
 `assert` can therefore make the test build capture a stack trace that the
 production build skips. Stack-trace capture is decided in the constructor
-(`writableStackTrace`); overriding `getStackTrace()` changes neither what
-`printStackTrace()` nor what a logger prints.
+(`writableStackTrace`); overriding `getStackTrace()` does not change what
+`printStackTrace()` prints, but loggers that render through it (Logback's
+`ThrowableProxy`) print what it returns, so it is not a way to hide a trace.
 
 ```java
 public static ParseException at(final int position) {
@@ -1187,7 +1196,12 @@ void publish(final long v) {
 **Finding:** Two hot fields written by different threads on one cache line, shown by a profile or benchmark.
 
 Pad by inheritance, with 16 `long`s (128 bytes) before and after the hot field
-(the JVM lays out superclass fields first), or use a 128-byte stride in arrays
+(HotSpot places a superclass's fields before its subclass's, except that a
+subclass field of 4 bytes or less may fill a gap the superclass left: on JDK 25
+the 4 bytes after a compressed header take a subclass `int` or reference at
+offset 12, before the padding. So the hot field is a `long` (or a `double`),
+which cannot take that gap; a hot `int` or reference is held in a `long`, or
+padded with `@Contended` and `-XX:-RestrictContended`), or use a 128-byte stride in arrays
 (16 `long`s, 32 `int`s). 128 bytes covers the 128-byte cache lines of Apple
 silicon and the adjacent-line prefetch of x86, and matches HotSpot's own
 `ContendedPaddingWidth`. Comment the padding as false-sharing avoidance, and
@@ -1272,9 +1286,9 @@ Workers observe the flag at the next
 iteration, run their own cleanup in nested `try/finally` steps, and count down
 the halt latch **last**; the pool frees shared resources only after that latch
 releases. The flag is a `volatile` field (or atomic, or guarded by the lock the
-worker takes), written before the wake-up: `unpark` and `notify` wake a thread
-but publish nothing, so a plain `boolean` can stay `false` in the worker
-forever. Nothing uses `Thread.interrupt()` to stop a worker that touches an
+worker takes), written before the wake-up: `unpark` wakes a thread but publishes nothing, and
+`notify` publishes only through the monitor both sides hold, so a plain
+`boolean` read outside that monitor can stay `false` in the worker forever. Nothing uses `Thread.interrupt()` to stop a worker that touches an
 `InterruptibleChannel` (`FileChannel`): the interrupt closes the channel for
 every user. A worker blocked in network I/O is woken by closing its socket or by
 its read timeout (G-15.1); a task run by an executor is cancelled by the
@@ -1566,9 +1580,11 @@ declarations). A sweep over existing code is applied by a tool (G-13.9);
 new and changed lines are written with `final` directly. javac rejects a `final`
 on a reassigned variable but never reports a missing one: Checkstyle's
 `FinalLocalVariable` (in this standard's `config/checkstyle/checkstyle.xml`)
-reports locals, enhanced-`for` variables, catch parameters and method and
-constructor parameters that are never reassigned, and leaves out a local declared
-without an initialiser; `try`-with-resources variables are left to review.
+reports locals, enhanced-`for` variables, single-type catch parameters and method
+and constructor parameters that are never reassigned, and leaves out a local
+declared without an initialiser. It does not report fields, `try`-with-resources
+variables, multi-catch parameters or basic-`for` initialisers (Checkstyle 14.3.0):
+those are left to review.
 
 ```java
 public long sum(final LongList values, final int from) {
@@ -1706,7 +1722,7 @@ comment belongs).
 No
 wildcards; a type is imported, never written fully qualified, except to tell apart two
 types with one simple name. Groups, in this order, each sorted, a blank line between
-them: the JDK's own (`java`, `javax`, `jdk`, `com.sun`), then third-party libraries,
+them: the JDK's own (the packages the `java.*` and `jdk.*` modules export: `java`, `javax`, `jdk`, `com.sun.net.httpserver` and the other exported `com.sun` packages, `org.w3c.dom`, `org.xml.sax`, `org.ietf.jgss`, `sun.misc`, `sun.reflect`, `netscape.javascript`; not third-party `com.sun` artifacts such as `com.sun.jna`), then third-party libraries,
 then the project's own packages. Static imports form a group of their own, last, ordered the same way.
 Checkstyle enforces the order and `UnusedImports` beside it, because `-Xlint` reports
 neither.
@@ -1807,6 +1823,8 @@ final CountDownLatch done = new CountDownLatch(threads);
 final AtomicInteger anomalies = new AtomicInteger();
 final ThreadFactory factory = Thread.ofPlatform().name("race-worker-", 0).factory();
 final List<Thread> workers = new ArrayList<>();
+boolean finished = false;
+final List<String> stuck = new ArrayList<>();
 try {
     for (int t = 0; t < threads; t++) {
         final Thread w = factory.newThread(() -> {
@@ -1824,13 +1842,21 @@ try {
         workers.add(w);
         w.start();
     }
-    assertTrue(done.await(60, TimeUnit.SECONDS), "workers did not finish");
-} finally {
-    for (final Thread w : workers) {                            // runs on success and on a timeout
-        w.interrupt();
-        assertTrue(w.join(Duration.ofSeconds(10)), "worker did not stop [name=" + w.getName() + "]");
+    finished = done.await(60, TimeUnit.SECONDS);
+} finally {                                                     // runs on success, a timeout and a failure
+    for (final Thread w : workers) {
+        w.interrupt();                                          // every worker first, so none waits on another
+    }
+    for (final Thread w : workers) {
+        if (!w.join(Duration.ofSeconds(10))) {                  // each joined with a bound
+            stuck.add(w.getName());
+        }
     }
 }
+assertTrue(
+        finished && stuck.isEmpty(),
+        "workers did not finish or stop [finished=" + finished + ", stuck=" + stuck + "]"
+);
 assertEquals(0, anomalies.get());
 ```
 
@@ -2169,7 +2195,12 @@ operation's logs, events and spans join across processes.
 
 `-XX:StartFlightRecording` with `maxage` and `maxsize`, and settings that enable
 lock, park, pinning and allocation events with thresholds, so a stall can be read
-after it happened, not reproduced. The bound keeps the disk cost fixed.
+after it happened, not reproduced. The bound keeps the disk cost fixed. The JDK's
+`default` and `profile` settings record every environment variable, every system
+property and the command line (`jdk.InitialEnvironmentVariable`,
+`jdk.InitialSystemProperty`, `jdk.JVMInformation`), secrets included: the
+recording is written owner-only and handled as a secret, and turning those events
+off narrows what it holds without making it safe to share.
 
 ### G-14.12 A thread that owns latency measures its own stalls
 
