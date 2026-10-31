@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.3 (2026-10-31)
+
+- G-11.6: the Finding reported every `Closeable` outside `try`-with-resources, so the per-class fixture its title asks
+  for (opened in `@BeforeAll`, closed in `@AfterAll`) was a finding. The Finding now exempts a per-class fixture
+  closed in `@AfterAll` or by an extension, and the text says how `@AfterAll` closes a fixture whose start failed.
+  The title wins over the Finding it contradicted; no other rule changed.
+
 ## 2.0.2 (2026-10-31)
 
 Corrections found by applying the standard to a whole repository; no rule ID, scope, class or Finding line changed.
