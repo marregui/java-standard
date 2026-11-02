@@ -1,6 +1,6 @@
 # Java Coding Standard
 
-Version 2.0.1, 2026-10-30. JDK 25 baseline.
+Version 2.0.4, 2026-11-02. JDK 25 baseline.
 
 This standard says how Java is written, changed and judged in the repositories that follow it. Its first readers are
 coding agents (Claude, Codex) that write, change and review code; its second readers are the engineers who own that

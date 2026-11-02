@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.4 (2026-11-02)
+
+- The version line of `STANDARD.md`, and with it the header of `RULES.md`, still read 2.0.1 at the 2.0.2 and 2.0.3
+  tags. Both now name the release. No rule changed.
+
 ## 2.0.3 (2026-10-31)
 
 - G-11.6: the Finding reported every `Closeable` outside `try`-with-resources, so the per-class fixture its title asks
