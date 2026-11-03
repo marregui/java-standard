@@ -4,6 +4,8 @@
 
 - The version line of `STANDARD.md`, and with it the header of `RULES.md`, still read 2.0.1 at the 2.0.2 and 2.0.3
   tags. Both now name the release. No rule changed.
+- `tools/rules.py`: options through `argparse` (`--root` added for tests), rules as records, UTF-8 reads and writes,
+  failures on stderr; `tools/test_rules.py` covers it and runs in CI. `RULES.md` is generated unchanged.
 
 ## 2.0.3 (2026-10-31)
 
