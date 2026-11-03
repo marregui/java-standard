@@ -10,7 +10,7 @@ is checked, whether a violation is a defect or a rule, and what counts as a find
 | [`RULES.md`](RULES.md) | Every rule in one table, generated from `STANDARD.md`; the file an agent loads first |
 | [`config/checkstyle/checkstyle.xml`](config/checkstyle/checkstyle.xml) | The checks javac cannot make (G-10.2, G-10.8, G-10.11); a repository copies the file of the tag it follows and sets `projectPackagePattern` from its Apply section |
 | [`CHANGELOG.md`](CHANGELOG.md) | What each version changed |
-| [`tools/rules.py`](tools/rules.py) | Checks every rule block and regenerates `RULES.md`; CI runs `tools/rules.py --check` |
+| [`tools/rules.py`](tools/rules.py) | Checks every rule block and regenerates `RULES.md`; CI runs its test, [`tools/test_rules.py`](tools/test_rules.py), then `tools/rules.py --check` |
 
 ## Following it in a repository
 
