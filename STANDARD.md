@@ -1276,6 +1276,14 @@ condition holds. Pass a
 blocker object so thread dumps say what the thread waits on. Clamp remaining
 time to at least 1 ns because `parkNanos(<= 0)` returns immediately.
 
+`CompletableFuture.get(timeout, unit)` called on a `ForkJoinPool` worker may
+never time out: before it parks, the waiting worker helps, and can run a
+`supplyAsync` task it queued itself inline, so a blocking call in that task (a
+connect) runs on the waiter and the timeout does not apply until it returns.
+When another worker takes the task first, the timeout fires; a test of a
+timeout claim covers both orders. Run a blocking call on a thread of its own,
+not on the common pool, when its caller relies on a timed `get`.
+
 ### G-7.7 Halt is a visible flag, written before the wake-up
 
 **Scope:** everywhere · **From:** P5 · **Checked by:** review, test · **Class:** defect
@@ -1308,6 +1316,12 @@ threads, with a bounded spin that calls `Thread.onSpinWait()` and then parks
 (G-16.12), and only where a measurement shows it beats the alternatives
 (G-13.10). `synchronized` on a small private lock object serves cold structural
 paths; `ReentrantLock` where a timed or interruptible acquire is needed.
+
+Where a lock is needed and its order matters, the untimed `tryAcquire()` of a
+`Semaphore` barges even when the semaphore is fair: it takes a free permit ahead
+of queued waiters. `tryAcquire(0, unit)` honours the queue, so a retry after a
+failed timed wait uses the timed form, and a fairness test covers the retry as
+well as the first acquire.
 
 ### G-7.9 Single-owner latches when exactly one thread waits
 
@@ -1816,6 +1830,13 @@ order is randomised so inter-test state leaks surface.
 
 **Finding:** `Thread.sleep` used to wait for a condition, an unbounded join, or outcomes asserted on a worker thread.
 
+The threads that meet at a barrier each need a thread of their own. On a
+runner with 2 CPUs or fewer the common `ForkJoinPool` has parallelism 1, and
+`CompletableFuture.supplyAsync` without an executor runs there, so two tasks
+meeting at a `CyclicBarrier(2)` block until the barrier times out. Start the
+parties on threads the test creates, as below, or on an executor with at least
+as many threads; a concurrency failure seen only on CI is reproduced with
+`-XX:ActiveProcessorCount` set to the runner's CPU count.
 
 ```java
 final CyclicBarrier start = new CyclicBarrier(threads);

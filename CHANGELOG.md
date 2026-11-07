@@ -6,6 +6,11 @@
   tags. Both now name the release. No rule changed.
 - `tools/rules.py`: options through `argparse` (`--root` added for tests), rules as records, UTF-8 reads and writes,
   failures on stderr; `tools/test_rules.py` covers it and runs in CI. `RULES.md` is generated unchanged.
+- G-7.6, G-7.8, G-11.5: one paragraph each on a JDK behaviour that defeats the rule's usual form: a timed
+  `CompletableFuture.get` on a `ForkJoinPool` worker can run the awaited task inline and miss its timeout; a fair
+  `Semaphore`'s untimed `tryAcquire()` barges; barrier parties on the common pool block until the barrier times
+  out on a runner with 2 CPUs or fewer. No
+  title, scope, class or Finding line changed.
 
 ## 2.0.3 (2026-10-31)
 
